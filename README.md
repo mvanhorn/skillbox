@@ -1,3 +1,90 @@
+<!-- readme-sync:repo:start -->
+# skillbox
+
+Self\-hosted, versioned skills library for AI agents\. MCP, scoped clients, and optional Jev recommendations\.
+<!-- readme-sync:repo:end -->
+
+<!-- readme-sync:header:start -->
+<table>
+  <tr>
+    <td width="72" align="center">
+      <a href="https://kitze.io"><img src="https://unavatar.io/x/thekitze" width="64" height="64" alt="Kitze"></a>
+    </td>
+    <td>
+      <strong>Made by <a href="https://kitze.io">Kitze</a></strong><br>
+      <a href="https://kitze.io">kitze.io</a> · <a href="https://x.com/thekitze">X</a> · <a href="https://youtube.com/kitze">YouTube</a>
+    </td>
+  </tr>
+</table>
+
+### Projects
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://zerotoshipped.com"><img src="https://zerotoshipped.com/ship.png" width="72" alt="Zero To Shipped logo"></a><br>
+      <strong><a href="https://zerotoshipped.com">Zero To Shipped</a></strong><br>
+      A full-stack starter kit for web and mobile apps.
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://sotto.to"><img src="https://sotto.to/apple-touch-icon.png" width="48" alt="Sotto logo"></a><br>
+      <strong><a href="https://sotto.to">Sotto</a></strong><br>
+      Voice-to-text for macOS. Local AI, one-time purchase.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://tinkerer.club"><img src="https://app.tinkerer.club/brand/tinkerer-logo-128.png" width="48" alt="Tinkerer Club logo"></a><br>
+      <strong><a href="https://tinkerer.club">Tinkerer Club</a></strong><br>
+      A private community for builders, self-hosters, and AI tinkerers.
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://sizzy.co"><img src="https://sizzy.co/apple-touch-icon.png" width="48" alt="Sizzy logo"></a><br>
+      <strong><a href="https://sizzy.co">Sizzy</a></strong><br>
+      The browser for web developers.
+    </td>
+  </tr>
+</table>
+
+### Sponsors
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://postiz.com"><img src="https://media.gifs.so/sponsors/50b4a915f9c47b5328b97281/b08730d86b240100fd72d42b828923856d14d82d50eb5698b99cf8e2ca125288.webp" width="40" alt="Postiz logo"></a><br>
+      <strong><a href="https://postiz.com">Postiz</a></strong><br>
+      Schedule social posts with AI agents.
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://www.founderstack.pro"><img src="https://media.gifs.so/sponsors/bc182e02573bf0e14da0cb0c/f164ca56c7b1d7869e589917f716e58355536eef30854f62c49f711c07a7de96.webp" width="40" alt="FounderStack logo"></a><br>
+      <strong><a href="https://www.founderstack.pro">FounderStack</a></strong><br>
+      A SaaS stack for your business, without subscriptions.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://matte.app"><img src="https://media.gifs.so/sponsors/4193d8ef8f8b0660107703fe/66b20a60c4d9e1da3d999efe862e86f600ebb5a4ffa3a8b63f40a507fef91f66.webp" width="40" alt="Matte logo"></a><br>
+      <strong><a href="https://matte.app">Matte</a></strong><br>
+      3D mockups, screen recordings, and video editing.
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://htmlcsstoimage.com"><img src="https://media.gifs.so/sponsors/f4c20d84da68764c3f7a4f67/167bf23cf98b11e2d55ea9aa69f83052daceb881bdea7b76925ffa185ed66d2b.webp" width="40" alt="HTML/CSS to Image logo"></a><br>
+      <strong><a href="https://htmlcsstoimage.com">HTML/CSS to Image</a></strong><br>
+      Turn HTML/CSS into images, PDFs, and screenshots.
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">
+      <a href="https://namemyventi.com"><img src="https://media.gifs.so/sponsors/da87180867c3c7451bd30d7b/43ce5be2540cf23d3d7d7104ba829a455a9608861a780e0ec2b35b189695f7ea.webp" width="40" alt="NameMyVenti logo"></a><br>
+      <strong><a href="https://namemyventi.com">NameMyVenti</a></strong><br>
+      Get your brand shouted out at Starbucks.
+    </td>
+  </tr>
+</table>
+
+---
+<!-- readme-sync:header:end -->
+
 # Skillbox
 
 A self-hosted, versioned skills library for AI agents. React, Bun, Hono and PostgreSQL. MIT licensed.
@@ -85,6 +172,8 @@ node cli/skillbox.mjs publish ./my-skill my-skill EXPECTED_REVISION
 
 Base MCP tools: `search_skills`, `recommend_skills`, `load_skill`, `read_skill_file`, `report_skill_use`. Write/proposal tools appear according to permissions. Recommendations are additive: unqueried `search_skills` remains the mandatory task-start inventory step. Load selected skills with returned revisions before applying them.
 
+SEP-capable hosts may also call `skills/list`, `skills/get`, and `resources/read` on `skill://<id>/…` files. Those listings are grant-scoped snapshots of each skill's **current** revision (with `sha256:` per-file digests); they do not replace the tools, and `search_skills` remains the Skillbox bootstrap inventory step. Pin a frozen tree with `skillbox fetch id@REVISION`. Historical revisions stay available through `load_skill({revision})` and HTTP, not through SEP listing.
+
 Fetching validates every path, file hash, size, executable flag and package checksum, then writes atomically. It never runs code or installs dependencies. Revoking a key blocks future access but cannot retract already downloaded files. Bundles expand grants into deduplicated current leaf skills; references never grant access by themselves.
 
 `scripts/install-client.py` optionally configures Codex, Claude or Cursor from explicit per-client credentials on stdin, preserving existing settings and making local backups. Review any installer before running it.
@@ -124,3 +213,118 @@ bash scripts/test-isolated.sh
 The isolated suite creates and removes its own Compose PostgreSQL instance without published ports. It covers authorization, revisions, API/MCP behavior, CLI, encrypted settings and recommendations; image creation also builds the frontend. Never run database tests against production.
 
 See [SECURITY.md](SECURITY.md), [deployment notes](docs/deployment.md), and [release checklist](docs/open-source-readiness.md). Skillbox is a single-owner, self-hosted application with scoped clients—not a public multi-tenant SaaS. No analytics, hosted account, preloaded catalog or automatic paid-provider connection is required.
+
+
+<!-- readme-sync:footer:start -->
+---
+
+### More by Kitze
+
+#### Apps & tools
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong><a href="https://gifs.so">gifs.so</a></strong><br>
+      Search, copy, and download reaction GIFs.
+    </td>
+    <td width="50%" valign="top">
+      <strong><a href="https://glink.so">Glink</a></strong><br>
+      Feedback, roadmaps, changelogs, and discussions.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong><a href="https://benji.so">Benji</a></strong><br>
+      Tasks, habits, calendar, health, and routines in one place.
+    </td>
+    <td width="50%" valign="top">
+      <strong><a href="https://dmx.to">DMX</a></strong><br>
+      A focused desktop client for X.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong><a href="https://glink.so/kitze/mindy">Mindy</a></strong><br>
+      An AI browser that keeps your work organized.
+    </td>
+    <td width="50%" valign="top">
+      <strong><a href="https://glink.so/kitze/supermac">Supermac</a></strong><br>
+      A macOS command center for everyday workflows.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong><a href="https://glink.so/kitze/k67-1787136958277">K67</a></strong><br>
+      A fork of T3 Code for working with coding agents.
+    </td>
+    <td width="50%" valign="top">
+      <strong><a href="https://perkz.to">Perkz</a></strong><br>
+      Sell and manage access to private GitHub repositories.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong><a href="https://glink.so/kitze/labz">Labz</a></strong><br>
+      A platform for teaching workshops and courses.
+    </td>
+    <td width="50%" valign="top">
+      <strong><a href="https://glink.so/kitze/popcorner-1762890546557">Popcorner</a></strong><br>
+      Organize your movies and TV shows.
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">
+      <strong><a href="https://glink.so/kitze/champions">Champions Online</a></strong><br>
+      A free multiplayer card-game platform.
+    </td>
+  </tr>
+</table>
+
+#### Open source
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong><a href="https://github.com/kitze/skillbox">Skillbox</a></strong><br>
+      A self-hosted, versioned skills library for AI agents.
+    </td>
+    <td width="50%" valign="top">
+      <strong><a href="https://github.com/kitze/unclutter">Unclutter</a></strong><br>
+      Remove page clutter with AI-powered, reusable browser rules.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong><a href="https://github.com/kitze/pagegrade">PageGrade</a></strong><br>
+      Grade page clarity, writing, and on-page SEO.
+    </td>
+    <td width="50%" valign="top">
+      <strong><a href="https://github.com/kitze/council">Council</a></strong><br>
+      Let your coding agents deliberate together before making a plan.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong><a href="https://github.com/kitze/codexmaxx">CodexMaxx</a></strong><br>
+      Manage Codex accounts, usage, and active sessions on macOS.
+    </td>
+    <td width="50%" valign="top">
+      <strong><a href="https://github.com/kitze/react-hanger">React Hanger</a></strong><br>
+      A collection of useful React hooks.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong><a href="https://github.com/kitze/react-genie">React Genie</a></strong><br>
+      Animate React elements as they enter the viewport.
+    </td>
+    <td width="50%" valign="top">
+      <strong><a href="https://github.com/kitze/mobx-router">MobX Router</a></strong><br>
+      A simple router for MobX and React apps.
+    </td>
+  </tr>
+</table>
+
+[All projects](https://kitze.io/projects) · [GitHub](https://github.com/kitze) · [Follow on X](https://x.com/thekitze) · [YouTube](https://youtube.com/kitze)
+<!-- readme-sync:footer:end -->
