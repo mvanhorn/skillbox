@@ -1,0 +1,148 @@
+{
+  "repo": "kitze/skillbox",
+  "status": "ok",
+  "plans_written": 2,
+  "plan_files": [
+    "osc-discovery/2026-09-17-520-feat-mcp-skills-extension-plan.md",
+    "osc-discovery/2026-09-17-521-feat-harness-compatibility-plan.md"
+  ],
+  "deep_discovery_report": "osc-discovery/2026-09-17-deep-report.md",
+  "research_mode": "deep",
+  "plan_date": "2026-09-17",
+  "plan_id_start": 520,
+  "bulk_k": 2,
+  "contribution_target": "kitze/skillbox",
+  "workspace_fork": "mvanhorn/skillbox",
+  "upstream_head": "7254a9729ec347efbd3ea26d482752d3696f0b1a",
+  "proposal_lane": false,
+  "proposal_surface": null,
+  "process_level": "PR_WELCOME",
+  "chosen_features": [
+    {
+      "title": "feat: serve Agent Skills over MCP via SEP-2640 skills/list, skills/get, and resources",
+      "plan_file": "osc-discovery/2026-09-17-520-feat-mcp-skills-extension-plan.md",
+      "deep_rubric_score": 9,
+      "complexity": "M",
+      "category": 1,
+      "merge_confidence": 0.74,
+      "pre_plan_score": 9,
+      "post_plan_score": 9
+    },
+    {
+      "title": "feat: harness-aware skill catalogs using Agent Skills compatibility",
+      "plan_file": "osc-discovery/2026-09-17-521-feat-harness-compatibility-plan.md",
+      "deep_rubric_score": 8,
+      "complexity": "M",
+      "category": 1,
+      "merge_confidence": 0.79,
+      "pre_plan_score": 8,
+      "post_plan_score": 8
+    }
+  ],
+  "autonomous_check_inputs": {
+    "pre_plan_score": 9,
+    "post_plan_score": 9,
+    "PROCESS_LEVEL": "PR_WELCOME",
+    "NO_AI_OPPOSED": true,
+    "NO_COMPETING_PRS": true,
+    "HAS_PRECEDENT": false,
+    "WARMTH_SCORE": 1,
+    "OPEN_PRS_AUTHORED": 0,
+    "REPO_OPEN_PRS_TOTAL": 0,
+    "IS_OWN_PROJECT": false,
+    "GH_USER": "mvanhorn"
+  },
+  "category_1_quota": {
+    "cat1": 6,
+    "cat3": 2,
+    "quota_met": true,
+    "threshold": "cat1 + min(cat3, 2) >= 6"
+  },
+  "quick_fixes": [
+    {
+      "title": "Add CONTRIBUTING.md, issue template, and bun typecheck/test CI",
+      "note": "run /osc-plan"
+    },
+    {
+      "title": "Proposal review: unified diffs and rebase when expectedRevision moved",
+      "note": "run /osc-plan"
+    },
+    {
+      "title": "Warn on Agent Skills name/description length (64 / 1024) at publish",
+      "note": "run /osc-plan"
+    },
+    {
+      "title": "Set GitHub repo topics (agent-skills, mcp, self-hosted)",
+      "note": "run /osc-plan"
+    }
+  ],
+  "feature_pool_not_written": [
+    {
+      "title": "Manual git-pinned skill import from a commit SHA",
+      "category": 3,
+      "deep_rubric_score": 8,
+      "note": "Competitor gap vs mudler/skillserver; skipped so top-K stays protocol + harness. Docs forbid automatic git pull."
+    },
+    {
+      "title": "Local usage-informed ranking from report_skill_use events",
+      "category": 1,
+      "deep_rubric_score": 7.8
+    },
+    {
+      "title": "Agent Skills publish profile (warn/strict)",
+      "category": 1,
+      "deep_rubric_score": 7.6
+    },
+    {
+      "title": "Owner-signed revision attestations for CLI fetch",
+      "category": 1,
+      "deep_rubric_score": 7.4
+    },
+    {
+      "title": "Bundle composition overlap inspector",
+      "category": 1,
+      "deep_rubric_score": 7.2
+    }
+  ],
+  "social_pass": {
+    "invoked": true,
+    "engine": {
+      "kind": "unavailable",
+      "script": null,
+      "probed": [
+        "~/.osc/scripts/last30days_engine.py",
+        "/home/box/src/open-source-contributor/skills/osc-newfeature/scripts/social_search.py",
+        "/home/box/.agents/skills/last30days"
+      ]
+    },
+    "artifact": "osc-discovery/2026-09-17-deep-report.md#3-social--community-pass",
+    "status": "downgraded_websearch",
+    "reason": "last30days_engine_not_on_this_vm",
+    "gate": "path_b_task_authorized",
+    "signals": {
+      "total": 13,
+      "main": 0,
+      "competitors": 13
+    },
+    "source_coverage": {
+      "searched": ["github", "websearch", "hackernews"],
+      "failed": {
+        "last30days": "engine binary/skill not present on cloud planner VM",
+        "reddit": "one WebSearch query errored; no Skillbox-specific thread found via other queries"
+      }
+    },
+    "github_community": {
+      "issues": 0,
+      "pull_requests": 0,
+      "discussions_enabled": false,
+      "stars": 12,
+      "forks": 1
+    }
+  },
+  "skipped_reasons": {},
+  "notes": [
+    "Discovery artifacts only; do not open a product PR to kitze/skillbox from this run.",
+    "Prefetch submission_requirements.propose_first is false; confirmed no CONTRIBUTING.",
+    "OPEN_PRS_AUTHORED counts mvanhorn open PRs on kitze/skillbox only (0), not repo-wide PRs."
+  ]
+}
