@@ -39,7 +39,14 @@ if (
   throw new Error(
     "Use HTTPS outside localhost. For a trusted LAN only, explicitly set SKILLBOX_ALLOW_INSECURE_HTTP=1.",
   );
-let harness = "skillbox-cli";
+// Only send a harness the user configured, so the server can fall back to the
+// profile default harness. Unknown configured values are still sent as-is.
+let harness = (() => {
+  const configured = process.env.SKILLBOX_HARNESS ?? config.harness;
+  return typeof configured === "string" && configured.trim()
+    ? configured.slice(0, 160)
+    : undefined;
+})();
 // Mirror modern MCP body metadata into its required HTTP headers (SEP-2243).
 // Keep this bridge dependency-free so installed Node/Bun clients need no SDK.
 function mcpRequestHeaders(message) {
@@ -80,7 +87,7 @@ async function request(path, options = {}, preserveProtocolErrors = false) {
     headers: {
       Authorization: "Bearer " + token,
       "X-Skillbox-Source": "cli",
-      "X-Skillbox-Harness": harness,
+      ...(harness ? { "X-Skillbox-Harness": harness } : {}),
       ...(process.env.SKILLBOX_MODEL
         ? { "X-Skillbox-Model": process.env.SKILLBOX_MODEL }
         : {}),

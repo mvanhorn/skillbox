@@ -309,7 +309,7 @@ Install `bootstrap/SKILL.md` as the agent's `skills-library` bootstrap. Configur
 }
 ```
 
-Client config: `{ "url": "https://skills.example.com", "token": "YOUR_CLIENT_KEY" }`, mode 0600. Default location: `~/.config/skillbox/config.json`. `SKILLBOX_URL` / `SKILLBOX_TOKEN` override config. Without a URL, the CLI targets localhost, never another person's service. Keep `cli/skillbox.mjs` and `cli/package.mjs` together.
+Client config: `{ "url": "https://skills.example.com", "token": "YOUR_CLIENT_KEY" }`, mode 0600. Default location: `~/.config/skillbox/config.json`. `SKILLBOX_URL` / `SKILLBOX_TOKEN` override config. An optional `harness` (or `SKILLBOX_HARNESS`) names the product for `list` and `search`; without it the CLI sends no harness and your profile default applies. Without a URL, the CLI targets localhost, never another person's service. Keep `cli/skillbox.mjs` and `cli/package.mjs` together.
 
 ```sh
 node cli/skillbox.mjs list

@@ -81,3 +81,42 @@ test("audit CLI walks pages, reports failures and guards cursor progress", async
     server.stop(true);
   }
 });
+
+test("CLI discovery sends a harness only when one is configured", async () => {
+  const seen: (string | null)[] = [];
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch(request) {
+      seen.push(request.headers.get("X-Skillbox-Harness"));
+      return Response.json({ items: [] });
+    },
+  });
+  const run = async (env: Record<string, string>, ...args: string[]) => {
+    const child = Bun.spawn(
+      [process.execPath, resolve("cli/skillbox.mjs"), ...args],
+      {
+        env: {
+          ...process.env,
+          SKILLBOX_HARNESS: "",
+          SKILLBOX_CONFIG: "/tmp/skillbox-nonexistent-fixture-config",
+          SKILLBOX_URL: `http://127.0.0.1:${server.port}`,
+          SKILLBOX_TOKEN: "fixture-token",
+          ...env,
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
+    return child.exited;
+  };
+  try {
+    expect(await run({}, "list")).toBe(0);
+    expect(await run({}, "search", "deploy")).toBe(0);
+    expect(await run({ SKILLBOX_HARNESS: "cursor" }, "list")).toBe(0);
+    expect(await run({ SKILLBOX_HARNESS: "some-new-agent" }, "search", "x")).toBe(0);
+    expect(seen).toEqual([null, null, "cursor", "some-new-agent"]);
+  } finally {
+    server.stop(true);
+  }
+});
