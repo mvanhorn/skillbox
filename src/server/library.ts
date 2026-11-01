@@ -7,10 +7,22 @@ import { packageMetrics } from "../package-metrics";
 import { parseSkillIcon, type SkillIcon } from "../skill-icons";
 import { createHash, randomUUID } from "node:crypto";
 import matter from "gray-matter";
-import { and, eq, desc, inArray, sql } from "drizzle-orm";
-import { db } from "./db";
+import { and, eq, desc, inArray, sql, type SQL } from "drizzle-orm";
+import { connection, db } from "./db";
 import { skills, revisions, events } from "./schema";
-import type { Principal, SkillFile, SkillMetadata } from "../shared";
+import type {
+  CompatibilityFilter,
+  Principal,
+  SkillFile,
+  SkillMetadata,
+  GitHubSource,
+} from "../shared";
+import {
+  catalogFilter,
+  CompatibilityError,
+  compatibilityString,
+  declaredHarnesses,
+} from "./compatibility";
 import { expandBundles } from "./bundles";
 import { gatewayRecommender, gatewaySettings } from "./gateway";
 import {
@@ -165,6 +177,17 @@ export function metadata(id: string, files: SkillFile[]): SkillMetadata {
     )
   )
     throw new Problem(400, "Invalid Executor integrations");
+  let compatibility = "";
+  let harnessPolicy;
+  try {
+    compatibility = compatibilityString(data);
+    harnessPolicy = declaredHarnesses(data);
+  } catch (e) {
+    throw new Problem(
+      400,
+      e instanceof CompatibilityError ? e.message : "Invalid compatibility",
+    );
+  }
   return {
     executorIntegrations: [...new Set(executorIntegrations)] as string[],
     kind,
@@ -182,6 +205,8 @@ export function metadata(id: string, files: SkillFile[]): SkillMetadata {
         : {},
     frontmatter: data,
     icon: resolveIcon(data.icon, files),
+    compatibility,
+    harnessPolicy,
   };
 }
 export async function authorizedIds(p: Principal) {
@@ -205,6 +230,49 @@ const grantFilter = async (p: Principal) => {
   const ids = await authorizedIds(p);
   return ids.length ? inArray(skills.id, ids) : sql`false`;
 };
+function harnessVisibleSql(tokens: string[]) {
+  const values = sql.join(
+    tokens.map((token) => sql`${token}`),
+    sql`, `,
+  );
+  return sql`(
+    ${skills.harnessPolicy}->>'mode' = 'any'
+    OR EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements_text(${skills.harnessPolicy}->'products') AS product
+      WHERE product IN (${values})
+    )
+  )`;
+}
+async function compatibilityExtras(
+  p: Principal,
+  conditions: SQL[],
+): Promise<CompatibilityFilter | undefined> {
+  const filter = catalogFilter(p.context);
+  if (!filter) return;
+  const notVisible = sql`NOT ${harnessVisibleSql(filter.tokens)}`;
+  const skippedRows =
+    p.role === "admin"
+      ? await db
+          .select({ id: skills.id })
+          .from(skills)
+          .where(and(...conditions, notVisible))
+          .orderBy(skills.id)
+          .limit(200)
+      : [];
+  const [{ skipped }] = await db
+    .select({ skipped: sql<number>`count(*)::int` })
+    .from(skills)
+    .where(and(...conditions, notVisible));
+  return {
+    harness: filter.harness,
+    filtered: true,
+    skipped: Number(skipped),
+    ...(p.role === "admin"
+      ? { skippedIds: skippedRows.map((row) => row.id) }
+      : {}),
+  };
+}
 export async function record(
   p: Principal,
   operation: string,
@@ -224,6 +292,13 @@ export async function record(
     skillId,
   });
 }
+// The MCP transport is stateless, so the client name sent on initialize is
+// read back from the latest connect event for this token on later requests.
+export async function lastClientHarness(clientId: string) {
+  const [row] =
+    await connection`SELECT context->>'clientHarness' AS harness FROM events WHERE client_id=${clientId} AND operation='connect' AND context ? 'clientHarness' ORDER BY created_at DESC LIMIT 1`;
+  return typeof row?.harness === "string" && row.harness ? row.harness : undefined;
+}
 export async function search(
   p: Principal,
   query = "",
@@ -237,7 +312,7 @@ export async function search(
   query = query.trim().slice(0, 300);
   const count = Math.min(limit ?? (query ? 20 : 500), 500);
   offset = Math.max(offset, 0);
-  const conditions = [await grantFilter(p)];
+  const conditions: SQL[] = [await grantFilter(p)];
   conditions.push(kinds.length ? inArray(skills.kind, kinds) : sql`false`);
   if (!(includeArchived && p.role === "admin"))
     conditions.push(eq(skills.archived, false));
@@ -247,6 +322,9 @@ export async function search(
     conditions.push(
       sql`(to_tsvector('english',${skills.searchText}) @@ websearch_to_tsquery('english',${query}) OR ${skills.id} ILIKE ${"%" + query + "%"} OR ${skills.description} ILIKE ${"%" + query + "%"})`,
     );
+  const extras = await compatibilityExtras(p, conditions);
+  const filter = catalogFilter(p.context);
+  if (filter) conditions.push(harnessVisibleSql(filter.tokens));
   const rows = await db
     .select()
     .from(skills)
@@ -291,10 +369,23 @@ export async function search(
     }),
   );
   await record(p, query ? "search" : "browse");
-  return { items, hasMore, nextOffset: hasMore ? offset + count : null };
+  return {
+    items,
+    hasMore,
+    nextOffset: hasMore ? offset + count : null,
+    ...(extras ? { compatibility: extras } : {}),
+  };
 }
 // Only compact, authorized, active leaf descriptions can leave this server.
 export async function recommendationCatalog(p: Principal): Promise<Catalog> {
+  const conditions: SQL[] = [
+    await grantFilter(p),
+    eq(skills.kind, "skill"),
+    eq(skills.archived, false),
+    eq(skills.disabled, false),
+  ];
+  const filter = catalogFilter(p.context);
+  if (filter) conditions.push(harnessVisibleSql(filter.tokens));
   const candidates = await db
     .select({
       id: skills.id,
@@ -303,14 +394,7 @@ export async function recommendationCatalog(p: Principal): Promise<Catalog> {
       description: skills.description,
     })
     .from(skills)
-    .where(
-      and(
-        await grantFilter(p),
-        eq(skills.kind, "skill"),
-        eq(skills.archived, false),
-        eq(skills.disabled, false),
-      ),
-    )
+    .where(and(...conditions))
     .orderBy(skills.id)
     .limit(MAX_CANDIDATES + 1);
   return {
@@ -320,6 +404,7 @@ export async function recommendationCatalog(p: Principal): Promise<Catalog> {
       p.role,
       p.allSkills,
       [...p.skillIds].sort(),
+      filter?.harness ?? "",
     ]),
     candidates,
   };
@@ -359,7 +444,10 @@ export async function recommendSkills(
     signal,
   );
   await record(await principal(), "recommend");
-  return { ...result, ...(configured ? { provider: configured.provider } : {}) };
+  return {
+    ...result,
+    ...(configured ? { provider: configured.provider } : {}),
+  };
 }
 export async function revisionFor(p: Principal, id: string, revision?: string) {
   id = await resolveReferenceId(id);
@@ -430,6 +518,7 @@ export async function load(p: Principal, id: string, revision?: string) {
     ...(await referenceDetails(p, instructions)),
     revision: r.id,
     checksum: r.checksum,
+    source: r.source ?? null,
     metadata: { ...r.metadata, disabled: r.metadata.disabled ?? false },
     instructions: Buffer.from(
       r.files.find((f) => f.path === "SKILL.md")!.content,
@@ -488,6 +577,7 @@ export async function publish(
   importReferenceId?: string,
   options: {
     archive?: boolean;
+    source?: GitHubSource;
     database?: Pick<typeof db, "transaction">;
   } = {},
 ) {
@@ -597,6 +687,8 @@ export async function publish(
         icon: meta.icon,
         packageMetrics: packageMetrics(files),
         description: meta.description,
+        compatibility: meta.compatibility ?? "",
+        harnessPolicy: meta.harnessPolicy ?? { mode: "any", products: [] },
         tags: meta.tags,
         revision,
         searchText,
@@ -609,6 +701,8 @@ export async function publish(
           icon: meta.icon,
           packageMetrics: packageMetrics(files),
           description: meta.description,
+          compatibility: meta.compatibility ?? "",
+          harnessPolicy: meta.harnessPolicy ?? { mode: "any", products: [] },
           tags: meta.tags,
           revision,
           searchText,
@@ -626,20 +720,19 @@ export async function publish(
       skillId: id,
       files,
       metadata: meta,
+      source: options.source,
       checksum,
       message: message.slice(0, 200),
       author: p.name,
     });
-    await tx
-      .insert(events)
-      .values({
-        id: randomUUID(),
-        clientId: p.id,
-        clientName: p.name,
-        operation: "publish",
-        skillId: id,
-        context: { ...p.context, revision },
-      });
+    await tx.insert(events).values({
+      id: randomUUID(),
+      clientId: p.id,
+      clientName: p.name,
+      operation: "publish",
+      skillId: id,
+      context: { ...p.context, revision },
+    });
   });
   return { id, revision, checksum };
 }
@@ -652,6 +745,7 @@ export async function history(p: Principal, id: string) {
       author: revisions.author,
       createdAt: revisions.createdAt,
       checksum: revisions.checksum,
+      source: revisions.source,
     })
     .from(revisions)
     .where(eq(revisions.skillId, id))
@@ -659,7 +753,7 @@ export async function history(p: Principal, id: string) {
 }
 export function makeFile(
   path: string,
-  text: string,
+  text: string | Buffer,
   executable = false,
 ): SkillFile {
   const b = Buffer.from(text);

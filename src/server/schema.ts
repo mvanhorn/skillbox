@@ -7,7 +7,12 @@ import {
   boolean,
   index,
 } from "drizzle-orm/pg-core";
-import type { SkillFile, SkillMetadata } from "../shared";
+import type {
+  GitHubSource,
+  HarnessPolicy,
+  SkillFile,
+  SkillMetadata,
+} from "../shared";
 export const skills = pgTable("skills", {
   referenceId: text("reference_id")
     .notNull()
@@ -26,6 +31,11 @@ export const skills = pgTable("skills", {
   replacement: text("replacement"),
   title: text("title").notNull(),
   description: text("description").notNull(),
+  compatibility: text("compatibility").notNull().default(""),
+  harnessPolicy: jsonb("harness_policy")
+    .$type<HarnessPolicy>()
+    .notNull()
+    .default({ mode: "any", products: [] }),
   tags: jsonb("tags").$type<string[]>().notNull().default([]),
   revision: text("revision").notNull(),
   searchText: text("search_text").notNull(),
@@ -42,6 +52,7 @@ export const revisions = pgTable(
       .references(() => skills.id),
     metadata: jsonb("metadata").$type<SkillMetadata>().notNull(),
     files: jsonb("files").$type<SkillFile[]>().notNull(),
+    source: jsonb("source").$type<GitHubSource>(),
     checksum: text("checksum").notNull(),
     message: text("message").notNull(),
     author: text("author").notNull(),
@@ -59,6 +70,7 @@ export const profiles = pgTable("profiles", {
   permissions: jsonb("permissions")
     .$type<import("../shared").Permissions>()
     .notNull(),
+  defaultHarness: text("default_harness"),
   version: text("version")
     .notNull()
     .default(sql`gen_random_uuid()::text`),
