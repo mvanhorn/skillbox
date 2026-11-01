@@ -1793,6 +1793,84 @@ test("profile default harness applies only when the live header is absent", asyn
   }
 });
 
+test("initialized client identity scopes later headerless MCP requests", async () => {
+  const claudeId = "test-compat-init-" + randomUUID().slice(0, 8);
+  const openId = "test-compat-init-open-" + randomUUID().slice(0, 8);
+  ids.push(claudeId, openId);
+  const skill = (id: string, extra = "") => [
+    makeFile(
+      "SKILL.md",
+      `---\nname: ${id}\ndescription: Quality workflow for a fixture\n${extra}---\nBody\n`,
+    ),
+  ];
+  await publish(
+    ADMIN,
+    claudeId,
+    skill(claudeId, "compatibility: Designed for Claude Code\n"),
+    null,
+  );
+  await publish(ADMIN, openId, skill(openId), null);
+  const profile = await access.saveProfile(ADMIN, {
+    name: "Initialized harness " + randomUUID(),
+    allSkills: false,
+    skillIds: [claudeId, openId],
+    permissions: {
+      create: false,
+      update: false,
+      delete: false,
+      propose: false,
+    },
+  });
+  const c = await access.uniqueClient(
+    "Initialized harness client " + randomUUID(),
+    profile.id,
+  );
+  try {
+    const init = await app.request("/mcp", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + c.token,
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-11-25",
+          capabilities: {},
+          clientInfo: { name: "cursor", version: "1" },
+        },
+      }),
+    });
+    expect(init.status).toBe(200);
+
+    const headerless = await mcpTool(c.token, "search_skills");
+    const headerlessIds = headerless.items.map((s: { id: string }) => s.id);
+    expect(headerlessIds).toContain(openId);
+    expect(headerlessIds).not.toContain(claudeId);
+    expect(headerless.compatibility).toMatchObject({
+      harness: "cursor",
+      filtered: true,
+    });
+
+    const overridden = await mcpTool(
+      c.token,
+      "search_skills",
+      {},
+      { "X-Skillbox-Harness": "claude-code" },
+    );
+    const overriddenIds = overridden.items.map((s: { id: string }) => s.id);
+    expect(overriddenIds).toContain(claudeId);
+    expect(overridden.compatibility).toMatchObject({ harness: "claude-code" });
+  } finally {
+    await db.delete(events).where(eq(events.clientId, c.id));
+    await db.delete(clients).where(eq(clients.id, c.id));
+    await db.delete(profiles).where(eq(profiles.id, profile.id));
+  }
+});
+
 test("legacy migration preserves key identity and exact grants, and is repeatable", async () => {
   const id = randomUUID(),
     secret = randomUUID(),
