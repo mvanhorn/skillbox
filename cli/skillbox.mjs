@@ -41,12 +41,10 @@ if (
   );
 // Only send a harness the user configured, so the server can fall back to the
 // profile default harness. Unknown configured values are still sent as-is.
-let harness = (() => {
-  const configured = process.env.SKILLBOX_HARNESS ?? config.harness;
-  return typeof configured === "string" && configured.trim()
-    ? configured.slice(0, 160)
-    : undefined;
-})();
+// A blank SKILLBOX_HARNESS counts as unset, so config.harness still applies.
+let harness = [process.env.SKILLBOX_HARNESS, config.harness]
+  .find((value) => typeof value === "string" && value.trim())
+  ?.slice(0, 160);
 // Mirror modern MCP body metadata into its required HTTP headers (SEP-2243).
 // Keep this bridge dependency-free so installed Node/Bun clients need no SDK.
 function mcpRequestHeaders(message) {

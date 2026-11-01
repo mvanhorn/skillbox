@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
-import { resolve } from "node:path";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 test("audit CLI walks pages, reports failures and guards cursor progress", async () => {
   const requests: string[] = [];
@@ -115,7 +117,14 @@ test("CLI discovery sends a harness only when one is configured", async () => {
     expect(await run({}, "search", "deploy")).toBe(0);
     expect(await run({ SKILLBOX_HARNESS: "cursor" }, "list")).toBe(0);
     expect(await run({ SKILLBOX_HARNESS: "some-new-agent" }, "search", "x")).toBe(0);
-    expect(seen).toEqual([null, null, "cursor", "some-new-agent"]);
+    const dir = await mkdtemp(join(tmpdir(), "skillbox-harness-"));
+    const config = join(dir, "config.json");
+    await writeFile(config, JSON.stringify({ harness: "cursor" }));
+    expect(
+      await run({ SKILLBOX_HARNESS: " ", SKILLBOX_CONFIG: config }, "list"),
+    ).toBe(0);
+    await rm(dir, { recursive: true, force: true });
+    expect(seen).toEqual([null, null, "cursor", "some-new-agent", "cursor"]);
   } finally {
     server.stop(true);
   }
